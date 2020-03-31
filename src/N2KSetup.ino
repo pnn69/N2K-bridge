@@ -121,7 +121,7 @@ void setup() {
 
 void loop() {
   ArduinoOTA.handle();
-  if (TimeStamp + 1000 < millis()) {
+  if (TimeStamp + 500 < millis()) {
     TimeStamp = millis();
     Serial.println((analogRead(Vin) * 3.6 / 4095) * 5.7);
     Serial.println(digitalRead(MOB));
