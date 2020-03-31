@@ -12,9 +12,9 @@ CRGB leds[NUM_LEDS];
 #define Vin 37
 #define MOB 38
 
-//#define peter 1
+#define peter 1
 //#define ton 1
-#define work 1
+//#define work 1
 #ifdef peter
 const char *ssid = "NicE_Engineering_UPC";
 const char *password = "1001100110";
@@ -55,7 +55,8 @@ void IRAM_ATTR MOBtsk() { MOBactive = true; }
  * firmware */
 /* To realise that kill them in the function ArduinoOTA.onStart */
 /**************************************************************************** */
-void setup_OTA() {
+void setup_OTA()
+{
     char buf[30];
     byte mac[6];
     Serial.println();
@@ -69,7 +70,7 @@ void setup_OTA() {
         Serial.println("Recieving new firmware now!");
     });
     ArduinoOTA.onEnd([]() {
-    /* do stuff after update here!! */
+        /* do stuff after update here!! */
         Serial.println("\nRecieving done!");
         Serial.println("Storing in memory and reboot!");
         Serial.println();
@@ -86,7 +87,8 @@ void setup_OTA() {
 /*****************************************************************************/
 /*Setup*/
 /*****************************************************************************/
-void setup() {
+void setup()
+{
     Serial.print("Hello world");
     Serial.begin(115200);
     Serial.println("Booting");
@@ -96,67 +98,81 @@ void setup() {
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     TimeStamp = millis();
-    while (WiFi.waitForConnectResult() != WL_CONNECTED) {
+    while (WiFi.waitForConnectResult() != WL_CONNECTED)
+    {
         Serial.println("Connection Failed! Rebooting...");
         delay(5000);
         ESP.restart();
     }
     FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
-    touchAttachInterrupt(T8, gotTouch1, threshold);  // depends on version sdk use T8 or T9
+    touchAttachInterrupt(T8, gotTouch1, threshold); // depends on version sdk use T8 or T9
     touchAttachInterrupt(T7, gotTouch2, threshold);
     touchAttachInterrupt(T6, gotTouch3, threshold);
-    attachInterrupt(MOB, MOBtsk, FALLING);  // init MOB interrupt
+    attachInterrupt(MOB, MOBtsk, FALLING); // init MOB interrupt
     setup_OTA();
     Serial.println("Ready");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
     TimeStamp = millis();
-    touch1detected = false;  // set touch to fase after start up
+    touch1detected = false; // set touch to fase after start up
     touch2detected = false;
     touch3detected = false;
 }
 
-void loop() {
+void loop()
+{
     ArduinoOTA.handle();
-    if (TimeStamp + 500 < millis()) {
+    if (TimeStamp + 500 < millis())
+    {
         TimeStamp = millis();
         Serial.println((analogRead(Vin) * 3.6 / 4095) * 5.7);
         Serial.println(digitalRead(MOB));
 
-        if (leds[0].green > 0) {
-        leds[0].green = 0;
-        } else {
+        if (leds[0].green > 0)
+        {
+            leds[0].green = 0;
+        }
+        else
+        {
             leds[0].green = 5;
         }
-        if (cnt) {
+        if (cnt)
+        {
             cnt--;
-        } else {
+        }
+        else
+        {
             leds[1].red = 0;
         }
         FastLED.show();
     }
-    
-    if (MOBactive == true) {
+
+    if (MOBactive == true)
+    {
         cnt = 3;
         leds[1].red = 255;
         FastLED.show();
+        Serial.println("MOB pushed!!!");
         MOBactive = false;
     }
 
-    if (touch1detected) {
+    if (touch1detected)
+    {
         touch1detected = false;
         Serial.println("Touch 1 detected");
         leds[1] = CRGB(0, 0, 5);
         FastLED.show();
     }
-    if (touch2detected) {
+    if (touch2detected)
+    {
         touch2detected = false;
         Serial.println("Touch 2 detected");
         leds[1] = CRGB(00, 5, 0);
         FastLED.show();
     }
-  
-    if (touch3detected) {
+
+    if (touch3detected)
+    {
         touch3detected = false;
         Serial.println("Touch 3 detected");
         leds[1] = CRGB(5, 0, 0);
