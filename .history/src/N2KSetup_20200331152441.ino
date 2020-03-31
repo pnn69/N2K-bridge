@@ -133,13 +133,13 @@ void loop() {
     if (cnt) {
       cnt--;
     } else {
-      leds[1].red = 0;
+      leds[0].red = 0;
     }
     FastLED.show();
   }
   if (MOBactive == true) {
     cnt = 3;
-    leds[1].red = 255;
+    leds[0].red = 255;
     FastLED.show();
     MOBactive = false;
   }

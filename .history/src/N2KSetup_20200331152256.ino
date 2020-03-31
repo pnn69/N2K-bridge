@@ -1,13 +1,14 @@
-#include <WiFi.h>
-//#include <WiFiUdp.h>
+#include <Arduino.h>
 #include <ArduinoOTA.h>
 #include <FastLED.h>
+#include <WiFi.h>
+//#include <WiFiUdp.h>
 
 #define NUM_LEDS 2
 #define DATA_PIN 0
 CRGB leds[NUM_LEDS];
 
-#define CANtx 18
+#define CANtx 23
 #define CANrx 39
 #define Vin 37
 #define MOB 38
@@ -28,7 +29,6 @@ const char *ssid = "airsupplies";
 const char *password = "02351228133648477429";
 #endif
 const char *host = "N2K-bridge";
-IPAddress ipLok;
 
 long TimeStamp;
 int cnt = 0;
@@ -36,7 +36,6 @@ int threshold = 40;
 bool touch1detected = false;
 bool touch2detected = false;
 bool touch3detected = false;
-bool MOBactive = false;
 
 /*****************************************************************************/
 /* Touch interrupt*/
@@ -44,10 +43,6 @@ bool MOBactive = false;
 void gotTouch1() { touch1detected = true; }
 void gotTouch2() { touch2detected = true; }
 void gotTouch3() { touch3detected = true; }
-/*****************************************************************************/
-/* BOB interrupt*/
-/*****************************************************************************/
-void IRAM_ATTR MOBtsk() { MOBactive = true; }
 
 /*****************************************************************************/
 /* Over the air setup */
@@ -92,74 +87,53 @@ void setup() {
   Serial.println("Booting");
   pinMode(CANtx, OUTPUT);
   pinMode(CANrx, INPUT);
-  pinMode(MOB, INPUT);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  TimeStamp = millis();
   while (WiFi.waitForConnectResult() != WL_CONNECTED) {
     Serial.println("Connection Failed! Rebooting...");
     delay(5000);
     ESP.restart();
   }
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
-  touchAttachInterrupt(T8, gotTouch1, threshold);
+  touchAttachInterrupt(T9, gotTouch1, threshold);
   touchAttachInterrupt(T7, gotTouch2, threshold);
   touchAttachInterrupt(T6, gotTouch3, threshold);
-  attachInterrupt(MOB, MOBtsk, FALLING);
-  setup_OTA();
+  void setup_OTA();
   Serial.println("Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
-
   TimeStamp = millis();
-  analogSetCycles(100);
-  touch1detected = false;
-  touch2detected = false;
-  touch3detected = false;
 }
 
 void loop() {
   ArduinoOTA.handle();
   if (TimeStamp + 1000 < millis()) {
     TimeStamp = millis();
-    Serial.println((analogRead(Vin) * 3.6 / 4095) * 5.7);
-    Serial.println(digitalRead(MOB));
-
+    Serial.println((analogRead(Vin) * 3.3 / 4095) * 5.7);
+    Serial.println(cnt++);
     if (leds[0].green > 0) {
       leds[0].green = 0;
     } else {
-      leds[0].green = 5;
-    }
-    if (cnt) {
-      cnt--;
-    } else {
-      leds[1].red = 0;
+      leds[0].green = 25;
     }
     FastLED.show();
   }
-  if (MOBactive == true) {
-    cnt = 3;
-    leds[1].red = 255;
-    FastLED.show();
-    MOBactive = false;
-  }
-
   if (touch1detected) {
     touch1detected = false;
     Serial.println("Touch 1 detected");
-    leds[1] = CRGB(0, 0, 5);
+    leds[1] = CRGB(0, 0, 25);
     FastLED.show();
   }
   if (touch2detected) {
     touch2detected = false;
     Serial.println("Touch 2 detected");
-    leds[1] = CRGB(00, 5, 0);
+    leds[1] = CRGB(00, 25, 0);
     FastLED.show();
   }
   if (touch3detected) {
     touch3detected = false;
     Serial.println("Touch 3 detected");
-    leds[1] = CRGB(5, 0, 0);
+    leds[1] = CRGB(25, 0, 0);
     FastLED.show();
   }
 }
