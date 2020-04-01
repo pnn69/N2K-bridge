@@ -2,24 +2,23 @@
 //#include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include <FastLED.h>
-#include <driver/rtc_io.h>
+//#include <driver/rtc_io.h>
 
-
+/*Defines*/
 #define NUM_LEDS 2
-#define DATA_PIN 4
-CRGB leds[NUM_LEDS];
-
+#define WS2812_PIN 4
 #define CANtx 2
 #define CANrx 15
 #define Vin 37
 #define MOB 38
 #define NMEA38400 5
 #define NMEA4800 18
-
+#define NMEAout 23
+#define Relais 0
 //#define peter 1
 //#define ton 1
 #define work 1
-
+/*End difines*/
 
 #ifdef peter
 const char *ssid = "NicE_Engineering_UPC";
@@ -36,6 +35,7 @@ const char *password = "02351228133648477429";
 const char *host = "N2K-bridge";
 IPAddress ipLok;
 bool WiFi_ok = false;
+CRGB leds[NUM_LEDS];
 
 long TimeStamp;
 int cnt = 0;
@@ -97,18 +97,22 @@ void setup_OTA()
 /*****************************************************************************/
 void setup()
 {
-    Serial.print("Hello world");
     Serial.begin(115200);
-    Serial.println("Booting");
+    Serial.println("[SETUP] Booting");
+    
     pinMode(CANtx, OUTPUT);
-    pinMode(CANrx, INPUT);
-    pinMode(MOB, INPUT);
-    pinMode(NMEA38400, INPUT);
-    pinMode(NMEA4800, INPUT);
-    FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+    pinMode(CANrx, INPUT_PULLUP);
+    pinMode(MOB, INPUT_PULLUP);
+    pinMode(NMEA38400, INPUT_PULLUP);
+    pinMode(NMEA4800, INPUT_PULLUP);
+    pinMode(NMEAout, OUTPUT);
+    pinMode(Relais, OUTPUT);
+    FastLED.addLeds<NEOPIXEL, WS2812_PIN>(leds, NUM_LEDS);
+    
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     TimeStamp = millis();
+    Serial.print("[SETUP] ");
     while (!WiFi_ok && TimeStamp + 5000 > millis())
     {
         WiFi_ok = !(WiFi.waitForConnectResult() != WL_CONNECTED);
@@ -131,21 +135,21 @@ void setup()
     FastLED.show();
     
     if(WiFi_ok){
-        Serial.println("\r\nNetwork found and logged in");
+        Serial.println("\r\n[SETUP] Network found and logged in");
         ipLok = WiFi.localIP();
     }else{
-        Serial.println("\r\nSetup AP");
+        Serial.println("\r\n[SETUP] Setup AP");
         WiFi.softAP(ssid, password);
         ipLok = WiFi.softAPIP();
     }
-    Serial.print("IP address: ");
-    Serial.println(ipLok);    
+    Serial.print("[SETUP] IP address: ");
+    Serial.print(ipLok);    
     touchAttachInterrupt(T8, gotTouch1, threshold); // depends on version sdk use T8 or T9
     touchAttachInterrupt(T7, gotTouch2, threshold);
     touchAttachInterrupt(T6, gotTouch3, threshold);
     attachInterrupt(MOB, MOBtsk, FALLING); // init MOB interrupt
     setup_OTA();
-    Serial.println("Ready");
+    Serial.println("[SETUP] Ready");
     TimeStamp = millis();
     touch1detected = false; // set touch to fase after start up
     touch2detected = false;
@@ -159,16 +163,18 @@ void loop()
     {
         TimeStamp = millis();
         V12 = analogRead(Vin) * 3.6  * 5.7 / 4095;
-        Serial.printf("\rVoltage: %02.1f",V12);
-        if (leds[0].green > 0)
+        Serial.printf("\rVoltage: %02.1f NMEA38400: %d NMEA4800: %d CANrx: %d",V12,digitalRead(NMEA38400),digitalRead(NMEA4800),digitalRead(CANrx));
+        if (!digitalRead(Relais))
         {
-            leds[0].green = 0;
             digitalWrite(CANtx,true);
+            digitalWrite(NMEAout,true);
+            digitalWrite(Relais,true);
         }
         else
         {
-            leds[0].green = 5;
             digitalWrite(CANtx,false);
+            digitalWrite(NMEAout,false);
+            digitalWrite(Relais,false);
         }
         if (cnt)
         {
@@ -177,39 +183,45 @@ void loop()
         else
         {
             leds[1].red = 0;
+            leds[1].green = 0;
+            leds[1].blue = 0;
+            leds[0].red = 0;
+            leds[0].green = 0;
+            leds[0].blue = 0;
         }
         FastLED.show();
     }
 
     if (MOBactive == true)
     {
-        cnt = 3;
-        leds[1].red = 255;
-        FastLED.show();
-        Serial.println("MOB pushed!!!");
+        delay(100); //debounce
+        if(!digitalRead(MOB)){
+            cnt = 3;
+            leds[0].red = 255;
+            FastLED.show();
+            Serial.println("MOB pushed!!!");
+        }
         MOBactive = false;
     }
 
-    if (touch1detected)
+    if (touch1detected || touch2detected || touch3detected )
     {
-        touch1detected = false;
-        Serial.println("Touch 1 detected");
-        leds[1] = CRGB(0, 0, 5);
+        if(touch1detected ){
+            touch1detected = false;
+            Serial.println("Touch 1 detected");
+            leds[1].blue = 5;
+        }
+        if(touch2detected ){
+            touch2detected = false;
+            Serial.println("Touch 2 detected");
+            leds[1].green = 5;
+        }
+        if(touch3detected ){
+            touch3detected = false;
+            Serial.println("Touch 3 detected");
+            leds[1].red = 5;
+        }
         FastLED.show();
-    }
-    if (touch2detected)
-    {
-        touch2detected = false;
-        Serial.println("Touch 2 detected");
-        leds[1] = CRGB(00, 5, 0);
-        FastLED.show();
-    }
-
-    if (touch3detected)
-    {
-        touch3detected = false;
-        Serial.println("Touch 3 detected");
-        leds[1] = CRGB(5, 0, 0);
-        FastLED.show();
+        cnt = 5;
     }
 }
