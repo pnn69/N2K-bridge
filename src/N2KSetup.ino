@@ -9,8 +9,7 @@
 #define DATA_PIN 4
 CRGB leds[NUM_LEDS];
 
-//#define CANtx 2
-#define CANtx 15
+#define CANtx 2
 #define CANrx 15
 #define Vin 37
 #define MOB 38
