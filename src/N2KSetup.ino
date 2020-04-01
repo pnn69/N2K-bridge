@@ -109,6 +109,9 @@ void setup()
     pinMode(NMEAout, OUTPUT);
     pinMode(Relais, OUTPUT);
     FastLED.addLeds<NEOPIXEL, WS2812_PIN>(leds, NUM_LEDS);
+    leds[0].blue = 100;
+    leds[1].green = 100;
+    FastLED.show();
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     TimeStamp = millis();
@@ -122,6 +125,7 @@ void setup()
         {
             leds[0].blue = 0;
             leds[1].blue = 5;
+            leds[1].green = 0;
         }
         else
         {
