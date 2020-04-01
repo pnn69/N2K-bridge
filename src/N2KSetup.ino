@@ -109,7 +109,6 @@ void setup()
     pinMode(NMEAout, OUTPUT);
     pinMode(Relais, OUTPUT);
     FastLED.addLeds<NEOPIXEL, WS2812_PIN>(leds, NUM_LEDS);
-
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     TimeStamp = millis();
