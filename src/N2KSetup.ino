@@ -2,19 +2,26 @@
 //#include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include <FastLED.h>
+#include <driver/rtc_io.h>
+
 
 #define NUM_LEDS 2
-#define DATA_PIN 0
+#define DATA_PIN 4
 CRGB leds[NUM_LEDS];
 
-#define CANtx 18
-#define CANrx 39
+//#define CANtx 2
+#define CANtx 15
+#define CANrx 15
 #define Vin 37
 #define MOB 38
+#define NMEA38400 5
+#define NMEA4800 18
 
-#define peter 1
+//#define peter 1
 //#define ton 1
-//#define work 1
+#define work 1
+
+
 #ifdef peter
 const char *ssid = "NicE_Engineering_UPC";
 const char *password = "1001100110";
@@ -29,9 +36,11 @@ const char *password = "02351228133648477429";
 #endif
 const char *host = "N2K-bridge";
 IPAddress ipLok;
+bool WiFi_ok = false;
 
 long TimeStamp;
 int cnt = 0;
+float V12;
 int threshold = 40;
 bool touch1detected = false;
 bool touch2detected = false;
@@ -95,24 +104,49 @@ void setup()
     pinMode(CANtx, OUTPUT);
     pinMode(CANrx, INPUT);
     pinMode(MOB, INPUT);
+    pinMode(NMEA38400, INPUT);
+    pinMode(NMEA4800, INPUT);
+    FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     TimeStamp = millis();
-    while (WiFi.waitForConnectResult() != WL_CONNECTED)
+    while (!WiFi_ok && TimeStamp + 5000 > millis())
     {
-        Serial.println("Connection Failed! Rebooting...");
-        delay(5000);
-        ESP.restart();
+        WiFi_ok = !(WiFi.waitForConnectResult() != WL_CONNECTED);
+        delay(100);
+        Serial.print("*");
+        if (leds[0].blue > 0)
+        {
+            leds[0].blue = 0;
+            leds[1].blue = 5;
+        }
+        else
+        {
+            leds[0].blue = 5;
+            leds[1].blue = 0;
+        }
+        FastLED.show();
     }
-    FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+    leds[0].blue = 0;
+    leds[1].blue = 0;
+    FastLED.show();
+    
+    if(WiFi_ok){
+        Serial.println("\r\nNetwork found and logged in");
+        ipLok = WiFi.localIP();
+    }else{
+        Serial.println("\r\nSetup AP");
+        WiFi.softAP(ssid, password);
+        ipLok = WiFi.softAPIP();
+    }
+    Serial.print("IP address: ");
+    Serial.println(ipLok);    
     touchAttachInterrupt(T8, gotTouch1, threshold); // depends on version sdk use T8 or T9
     touchAttachInterrupt(T7, gotTouch2, threshold);
     touchAttachInterrupt(T6, gotTouch3, threshold);
     attachInterrupt(MOB, MOBtsk, FALLING); // init MOB interrupt
     setup_OTA();
     Serial.println("Ready");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
     TimeStamp = millis();
     touch1detected = false; // set touch to fase after start up
     touch2detected = false;
@@ -125,16 +159,17 @@ void loop()
     if (TimeStamp + 500 < millis())
     {
         TimeStamp = millis();
-        Serial.println((analogRead(Vin) * 3.6 / 4095) * 5.7);
-        Serial.println(digitalRead(MOB));
-
+        V12 = analogRead(Vin) * 3.6  * 5.7 / 4095;
+        Serial.printf("\rVoltage: %02.1f",V12);
         if (leds[0].green > 0)
         {
             leds[0].green = 0;
+            digitalWrite(CANtx,true);
         }
         else
         {
             leds[0].green = 5;
+            digitalWrite(CANtx,false);
         }
         if (cnt)
         {
