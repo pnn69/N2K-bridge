@@ -2,7 +2,7 @@
 //#include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include <FastLED.h>
-//#include <driver/rtc_io.h>
+#include <driver/rtc_io.h>
 
 /*Defines*/
 #define NUM_LEDS 2
@@ -15,9 +15,9 @@
 #define NMEA4800 18
 #define NMEAout 23
 #define Relais 0
-//#define peter 1
+#define peter 1
 //#define ton 1
-#define work 1
+//#define work 1
 /*End difines*/
 
 #ifdef peter
@@ -71,6 +71,7 @@ void setup_OTA()
     Serial.print("[SETUP] OTA...");
     WiFi.macAddress(mac);
     sprintf(buf, "%s-%02x:%02x:%02x:%02x:%02x:%02x", host, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    Serial.print(buf);
     ArduinoOTA.setHostname(buf);
     ArduinoOTA.onStart([]() {
         /* switch off all processes here!!!!! */
@@ -99,7 +100,7 @@ void setup()
 {
     Serial.begin(115200);
     Serial.println("[SETUP] Booting");
-    
+
     pinMode(CANtx, OUTPUT);
     pinMode(CANrx, INPUT_PULLUP);
     pinMode(MOB, INPUT_PULLUP);
@@ -108,7 +109,9 @@ void setup()
     pinMode(NMEAout, OUTPUT);
     pinMode(Relais, OUTPUT);
     FastLED.addLeds<NEOPIXEL, WS2812_PIN>(leds, NUM_LEDS);
-    
+    leds[0].blue = 100;
+    leds[1].green = 100;
+    FastLED.show();
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     TimeStamp = millis();
@@ -122,6 +125,7 @@ void setup()
         {
             leds[0].blue = 0;
             leds[1].blue = 5;
+            leds[1].green = 0;
         }
         else
         {
@@ -133,17 +137,20 @@ void setup()
     leds[0].blue = 0;
     leds[1].blue = 0;
     FastLED.show();
-    
-    if(WiFi_ok){
+
+    if (WiFi_ok)
+    {
         Serial.println("\r\n[SETUP] Network found and logged in");
         ipLok = WiFi.localIP();
-    }else{
+    }
+    else
+    {
         Serial.println("\r\n[SETUP] Setup AP");
         WiFi.softAP(ssid, password);
         ipLok = WiFi.softAPIP();
     }
     Serial.print("[SETUP] IP address: ");
-    Serial.print(ipLok);    
+    Serial.print(ipLok);
     touchAttachInterrupt(T8, gotTouch1, threshold); // depends on version sdk use T8 or T9
     touchAttachInterrupt(T7, gotTouch2, threshold);
     touchAttachInterrupt(T6, gotTouch3, threshold);
@@ -162,19 +169,19 @@ void loop()
     if (TimeStamp + 500 < millis())
     {
         TimeStamp = millis();
-        V12 = analogRead(Vin) * 3.6  * 5.7 / 4095;
-        Serial.printf("\rVoltage: %02.1f NMEA38400: %d NMEA4800: %d CANrx: %d",V12,digitalRead(NMEA38400),digitalRead(NMEA4800),digitalRead(CANrx));
+        V12 = analogRead(Vin) * 3.6 * 5.7 / 4095;
+        Serial.printf("\rVoltage: %02.1f NMEA38400: %d NMEA4800: %d CANrx: %d", V12, digitalRead(NMEA38400), digitalRead(NMEA4800), digitalRead(CANrx));
         if (!digitalRead(Relais))
         {
-            digitalWrite(CANtx,true);
-            digitalWrite(NMEAout,true);
-            digitalWrite(Relais,true);
+            digitalWrite(CANtx, true);
+            digitalWrite(NMEAout, true);
+            digitalWrite(Relais, true);
         }
         else
         {
-            digitalWrite(CANtx,false);
-            digitalWrite(NMEAout,false);
-            digitalWrite(Relais,false);
+            digitalWrite(CANtx, false);
+            digitalWrite(NMEAout, false);
+            digitalWrite(Relais, false);
         }
         if (cnt)
         {
@@ -195,7 +202,8 @@ void loop()
     if (MOBactive == true)
     {
         delay(100); //debounce
-        if(!digitalRead(MOB)){
+        if (!digitalRead(MOB))
+        {
             cnt = 3;
             leds[0].red = 255;
             FastLED.show();
@@ -204,19 +212,22 @@ void loop()
         MOBactive = false;
     }
 
-    if (touch1detected || touch2detected || touch3detected )
+    if (touch1detected || touch2detected || touch3detected)
     {
-        if(touch1detected ){
+        if (touch1detected)
+        {
             touch1detected = false;
             Serial.println("Touch 1 detected");
             leds[1].blue = 5;
         }
-        if(touch2detected ){
+        if (touch2detected)
+        {
             touch2detected = false;
             Serial.println("Touch 2 detected");
             leds[1].green = 5;
         }
-        if(touch3detected ){
+        if (touch3detected)
+        {
             touch3detected = false;
             Serial.println("Touch 3 detected");
             leds[1].red = 5;
