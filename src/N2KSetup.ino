@@ -15,9 +15,9 @@
 #define NMEA4800 18
 #define NMEAout 23
 #define Relais 0
-//#define peter 1
+#define peter 1
 //#define ton 1
-#define work 1
+//#define work 1
 /*End difines*/
 
 #ifdef peter
@@ -112,11 +112,12 @@ void setup()
     leds[0].blue = 100;
     leds[1].green = 100;
     FastLED.show();
+    WiFi.setHostname("Gekke henkie");
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
     TimeStamp = millis();
     Serial.print("[SETUP] ");
-    while (!WiFi_ok && TimeStamp + 5000 > millis())
+    while (!WiFi_ok && TimeStamp + 5000 > millis()) //Try to login in know network
     {
         WiFi_ok = !(WiFi.waitForConnectResult() != WL_CONNECTED);
         delay(100);
@@ -146,9 +147,9 @@ void setup()
     else
     {
         Serial.println("\r\n[SETUP] Setup AP");
-        WiFi.softAP(ssid, password);
-        ipLok = WiFi.softAPIP();
+        WiFi.softAP(ssid, password); // if nog logged in to known network set up AccesPoint with the same credentials
     }
+
     Serial.print("[SETUP] IP address: ");
     Serial.print(ipLok);
     touchAttachInterrupt(T8, gotTouch1, threshold); // depends on version sdk use T8 or T9
