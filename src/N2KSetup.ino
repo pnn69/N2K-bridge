@@ -15,9 +15,9 @@
 #define NMEA4800 18
 #define NMEAout 23
 #define Relais 0
-#define peter 1
+//#define peter 1
 //#define ton 1
-//#define work 1
+#define work 1
 /*End difines*/
 
 #ifdef peter
